@@ -1,0 +1,23 @@
+name: Unattended PR guard
+description: Close pull requests whose author's public activity suggests an LLM opening them unattended.
+inputs:
+  trusted-orgs:
+    description: Comma-separated organisations whose public members and regular contributors are never scored.
+    default: ${{ github.repository_owner }}
+  label:
+    description: Label to add to the pull requests it closes.
+    default: unattended
+runs:
+  using: composite
+  steps:
+    - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        TRUSTED_ORGS: ${{ inputs.trusted-orgs }}
+        LABEL: ${{ inputs.label }}
+      with:
+        script: |
+          await require(`${process.env.ACTION_PATH}/index.js`)({ github, context, core }, {
+            trustedOrgs: process.env.TRUSTED_ORGS.split(',').map(org => org.trim()).filter(Boolean),
+            label: process.env.LABEL,
+          });
