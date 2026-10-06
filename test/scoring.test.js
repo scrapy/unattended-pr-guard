@@ -136,3 +136,35 @@ for (const kind of ['unattended', 'attended']) {
     });
   }
 }
+
+test('trusted users are skipped without API calls', async () => {
+  const logs = [];
+  await require('../index.js')(
+    {
+      github: new Proxy(
+        {},
+        {
+          get: () => {
+            throw new Error('unexpected API call');
+          },
+        },
+      ),
+      context: {
+        repo: { owner: 'o', repo: 'r' },
+        payload: {
+          pull_request: {
+            number: 1,
+            user: { login: 'Author', type: 'User' },
+            author_association: 'CONTRIBUTOR',
+          },
+        },
+      },
+      core: { info: (message) => logs.push(message) },
+    },
+    { trustedOrgs: ['o'], trustedUsers: ['author'], label: 'unattended' },
+  );
+  assert.deepEqual(logs, [
+    'Scoring 1 PR(s).',
+    'Skipping PR #1 by Author (trusted user).',
+  ]);
+});
