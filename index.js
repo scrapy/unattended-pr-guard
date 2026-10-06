@@ -141,9 +141,13 @@ function verdict(signals) {
   return reasons;
 }
 
-module.exports = async ({ github, context, core }, { trustedOrgs, label }) => {
+module.exports = async (
+  { github, context, core },
+  { trustedOrgs, trustedUsers, label },
+) => {
   const { owner, repo } = context.repo;
   const now = new Date();
+  const trusted = new Set(trustedUsers.map((user) => user.toLowerCase()));
 
   // Rate and abuse limits reset on the order of a minute, so waiting is
   // enough; other errors are not worth retrying.
@@ -361,6 +365,12 @@ module.exports = async ({ github, context, core }, { trustedOrgs, label }) => {
       ).filter((pr) => daysBetween(pr.created_at, now) <= RECHECK_WINDOW_DAYS);
   core.info(`Scoring ${prs.length} PR(s).`);
   for (const pr of prs) {
+    if (trusted.has(pr.user.login.toLowerCase())) {
+      core.info(
+        `Skipping PR #${pr.number} by ${pr.user.login} (trusted user).`,
+      );
+      continue;
+    }
     if (
       pr.user.type === 'Bot' ||
       ['MEMBER', 'OWNER', 'COLLABORATOR'].includes(pr.author_association)

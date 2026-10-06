@@ -43,6 +43,8 @@ Inputs:
 - `trusted-orgs` (default: the owner of the repository): comma-separated
   organisations whose public members, and authors with 10 or more pull
   requests merged into them, are never scored.
+- `trusted-users` (default: none): comma-separated GitHub usernames that are
+  never scored, e.g. members of `trusted-orgs` whose membership is private.
 - `label` (default: `unattended`): label added to the pull requests it closes.
 
 ## How it decides
