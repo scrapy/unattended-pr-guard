@@ -1,6 +1,6 @@
 # Release notes
 
-## 0.2.0 (unreleased)
+## 0.2.0 (2026-10-06)
 
 Added a `trusted-users` input to never score pull requests from specific
 authors, e.g. members of `trusted-orgs` whose membership is private.
