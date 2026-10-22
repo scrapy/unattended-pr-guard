@@ -55,7 +55,8 @@ needs is unavailable, so a missing signal never counts against an author.
 - Rejection burst: pull requests of theirs closed unmerged elsewhere within the
   last 30 days. Absolute volume separates spraying from ordinary contribution
   far better than a merge ratio, which rewards merges into trivial
-  repositories.
+  repositories. In `trusted-orgs`, only pull requests labelled `spam`,
+  `unattended` or the configured `label` count.
 - Spray breadth: pull requests opened against more than 2 repositories they
   do not own in a single week. It catches an agent on its first day, and it
   comes from the event feed, so it also covers authors that search refuses to
