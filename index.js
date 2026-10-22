@@ -8,6 +8,8 @@ const MAX_REPOS_PER_WEEK = 2;
 const VOICE = { structure: 0.1, emDashPerKChar: 0.3, acknowledgement: 0.4 };
 const EVENT_PAGES = 3;
 const MIN_TRUSTED_MERGES = 10;
+// Labels that known users of this action close pull requests with.
+const UNATTENDED_LABELS = ['spam', 'unattended'];
 const AGENT_BRANCH =
   /^(agent|codex|claude|cursor|devin|copilot|jules|bot)[/_-]/i;
 const STRUCTURE = [
@@ -35,7 +37,19 @@ const ACKNOWLEDGEMENT = [
 const daysBetween = (date, now) => (now - new Date(date)) / 86400000;
 
 // Pull requests closed unmerged elsewhere, recently, from search results.
-function rejections(items, author, now) {
+// Closures in trusted organisations only count when labelled as unattended,
+// since their maintainers close pull requests for many other reasons.
+function rejections(
+  items,
+  author,
+  now,
+  trustedOrgs = [],
+  label = 'unattended',
+) {
+  const trusted = new Set(trustedOrgs.map((org) => org.toLowerCase()));
+  const labels = new Set(
+    [...UNATTENDED_LABELS, label].map((name) => name.toLowerCase()),
+  );
   return items
     .filter((item) => {
       const itemOwner = item.repository_url
@@ -46,7 +60,11 @@ function rejections(items, author, now) {
         itemOwner !== author.toLowerCase() &&
         item.state === 'closed' &&
         !item.pull_request?.merged_at &&
-        daysBetween(item.created_at, now) <= REJECTION_WINDOW_DAYS
+        daysBetween(item.created_at, now) <= REJECTION_WINDOW_DAYS &&
+        (!trusted.has(itemOwner) ||
+          (item.labels ?? []).some(({ name }) =>
+            labels.has(name.toLowerCase()),
+          ))
       );
     })
     .map((item) => item.html_url);
@@ -262,7 +280,8 @@ module.exports = async (
       if (batch.length < 100) break;
     }
     const signals = {
-      rejections: search && rejections(search.items, author, now),
+      rejections:
+        search && rejections(search.items, author, now, trustedOrgs, label),
       voice: voice(events),
       breadth: breadth(events, author),
       branch: pr.head?.ref,

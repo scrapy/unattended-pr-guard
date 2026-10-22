@@ -11,12 +11,13 @@ const {
 } = require('../index.js');
 
 const now = new Date('2026-10-01T00:00:00Z');
-const pr = (repo, state, created_at, merged_at = null) => ({
+const pr = (repo, state, created_at, merged_at = null, labels = []) => ({
   repository_url: `https://api.github.com/repos/${repo}`,
   html_url: `https://github.com/${repo}/pull/1`,
   state,
   created_at,
   pull_request: { merged_at },
+  labels: labels.map((name) => ({ name })),
 });
 const comment = (body) => ({
   type: 'IssueCommentEvent',
@@ -50,6 +51,28 @@ test('rejections count recent unmerged closures outside own repositories', () =>
       now,
     ),
     ['https://github.com/a/b/pull/1'],
+  );
+});
+
+test('rejections in trusted organisations only count when labelled', () => {
+  const closed = (repo, labels) =>
+    pr(repo, 'closed', '2026-09-20T00:00:00Z', null, labels);
+  assert.deepEqual(
+    rejections(
+      [
+        closed('t/a', []),
+        closed('t/b', ['bug']),
+        closed('t/c', ['Spam']),
+        closed('T/d', ['unattended']),
+        closed('t/e', ['slop']),
+        closed('u/f', []),
+      ],
+      'author',
+      now,
+      ['T'],
+      'slop',
+    ).map((url) => url.split('/')[4]),
+    ['c', 'd', 'e', 'f'],
   );
 });
 
